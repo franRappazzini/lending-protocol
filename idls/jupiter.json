@@ -1,0 +1,27 @@
+{
+  "address": "jup3YeL8QhtSx1e253b2FDvsMNC87fDrgQZivbrndc9",
+  "metadata": {
+    "name": "lending",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "deposit",
+      "discriminator": [242, 35, 198, 137, 82, 225, 242, 182],
+      "accounts": [],
+      "args": [
+        {
+          "name": "assets",
+          "type": "u64"
+        }
+      ],
+      "returns": "u64"
+    }
+  ],
+  "accounts": [],
+  "events": [],
+  "errors": [],
+  "types": []
+}
