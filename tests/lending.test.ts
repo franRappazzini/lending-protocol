@@ -1,17 +1,16 @@
 import * as anchor from "@coral-xyz/anchor";
 
+import { getDepositContext, getLendingTokens } from "@jup-ag/lend/dist/earn";
+
 import { Lending } from "../target/types/lending";
 import PUBKEYS from "./lib/pubkeys";
 import { Program } from "@coral-xyz/anchor";
 import { bn } from "./lib/functions";
-import { getDepositContext } from "@jup-ag/lend/dist/earn";
-
-// import { getDepositContext } from "@jup-ag/lend";
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 
 describe("lending", () => {
   const provider = anchor.AnchorProvider.env();
-  const connection = provider.connection;
-  const wallet = provider.wallet;
+  const { connection, wallet } = provider;
 
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -24,6 +23,10 @@ describe("lending", () => {
   // });
 
   it("Deposit!", async () => {
+    const allTokens = await getLendingTokens({ connection });
+
+    return console.log({ allTokens });
+
     const depositContext = await getDepositContext({
       asset: PUBKEYS.DEV.USDC,
       signer: wallet.publicKey,
@@ -32,25 +35,48 @@ describe("lending", () => {
 
     console.log({ depositContext });
 
-    const amount = 10_000_000; // 10 USDC
+    const amount = 1_000_000; // 1 USDC
 
-    const tx = await program.methods
+    const walletAta = await getOrCreateAssociatedTokenAccount(
+      connection,
+      wallet.payer,
+      PUBKEYS.DEV.USDC,
+      wallet.publicKey
+    );
+    console.log("User USDC ATA:", walletAta.address.toBase58());
+
+    const ix = await program.methods
       .deposit(bn(amount))
       .accounts({
         // Your program accounts
-        userAccount: userAccount,
+        // userAccount: userAccount,
 
         // Jupiter Lend accounts (from context)
-        signer: depositContext.signer,
+        // signer: depositContext.signer,
         depositorTokenAccount: depositContext.depositorTokenAccount,
         recipientTokenAccount: depositContext.recipientTokenAccount,
         lendingAdmin: depositContext.lendingAdmin,
         lending: depositContext.lending,
         fTokenMint: depositContext.fTokenMint,
+        mint: depositContext.mint,
+        supplyTokenReservesLiquidity: depositContext.supplyTokenReservesLiquidity,
+        lendingSupplyPositionOnLiquidity: depositContext.lendingSupplyPositionOnLiquidity,
+        rateModel: depositContext.rateModel,
+        vault: depositContext.vault,
+        liquidity: depositContext.liquidity,
+        liquidityProgram: depositContext.liquidityProgram,
+        rewardsRateModel: depositContext.rewardsRateModel,
+        tokenProgram: depositContext.tokenProgram,
         // ... all other accounts from context
-        lendingProgram: PUBKEYS.DEV.LENDING_PROGRAM,
+        // lendingProgram: PUBKEYS.DEV.LENDING_PROGRAM,
       })
-      .rpc({ skipPreflight: true });
+      .instruction();
+
+    const buildTx = new anchor.web3.Transaction().add(ix);
+
+    const tx = await anchor.web3.sendAndConfirmTransaction(connection, buildTx, [wallet.payer], {
+      skipPreflight: true,
+    });
 
     console.log("Transaction successful:", tx);
   });
